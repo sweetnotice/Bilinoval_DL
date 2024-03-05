@@ -82,6 +82,6 @@ ban_word = {'\ue805': '阴',
             '\ue862': '液'}
 if __name__ == '__main__':
     # 先使用api获取话文字  再在浏览器打开自动复制脚本 手动复制整话进行匹配
-    get_str2('https://www.linovelib.com/novel/302.html')
+    get_str2('https://www.linovelib.com/novel/8.html')
     # a = generate_dict(str1, str2)
     # pprint(ban_word)

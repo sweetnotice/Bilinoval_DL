@@ -2,9 +2,10 @@ import uuid
 import os
 import re
 from ebooklib import epub
+from spider_toolbox import file_tools
 
 
-def write_epub(title, 作者, 内容, description, 封面文件名, 封面文件, pic_dir, folder=None):
+def write_epub(title, 作者, 内容, description, 封面文件名, 封面文件, pic_dir, folder='epub'):
     # 初始化epub工具
     book = epub.EpubBook()
     book.set_identifier(str(uuid.uuid4()))
@@ -18,6 +19,8 @@ def write_epub(title, 作者, 内容, description, 封面文件名, 封面文件
     book.spine = ['nav']
     IDS = -1
     文件序号 = -1
+    if folder:
+        file_tools.mkdir(folder)
     for 卷名 in 内容:
         print("卷: " + 卷名)
         book.toc.append([epub.Section(卷名), []])
@@ -42,17 +45,19 @@ def write_epub(title, 作者, 内容, description, 封面文件名, 封面文件
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
 
-    files = os.listdir(pic_dir)
-    sorted_files = sorted(files, key=lambda x: [int(y) if y.isdigit() else y for y in re.split(r'(\d+)', x)])
-    for i, img in enumerate(sorted_files):
-        img = os.path.join(pic_dir, img)
-        if '.jpg' in img:
-            img_item = epub.EpubImage(file_name=f'{pic_dir}/{i}.jpg',
-                                      media_type="image/jpeg",
-                                      content=open(img, 'rb').read())
-            book.add_item(img_item)
+    if os.path.isdir(pic_dir):
+        files = os.listdir(pic_dir)
+        sorted_files = sorted(files, key=lambda x: [int(y) if y.isdigit() else y for y in re.split(r'(\d+)', x)])
+        for i, img in enumerate(sorted_files):
+            img = os.path.join(pic_dir, img)
+            if '.jpg' in img:
+                img_item = epub.EpubImage(file_name=f'{pic_dir}/{i}.jpg',
+                                          media_type="image/jpeg",
+                                          content=open(img, 'rb').read())
+                book.add_item(img_item)
+        file_tools.del_dir(pic_dir, mode=2)
 
-    epub.write_epub(title + '.epub', book)
+    epub.write_epub(os.path.join(folder, title) + '.epub', book)
 
 
 if __name__ == '__main__':

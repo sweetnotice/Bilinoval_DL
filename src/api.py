@@ -60,17 +60,17 @@ def get_noval_chapter(noval_id) -> dict:
         chapter_name_url = re.findall('<li class="col-4"><a href="(.*?)">(.*?)</a></li>', item)
         chapter_url_ = [urljoin(base_url, i[0]) for i in chapter_name_url]
         chapter_url = []
-        for i, url_ in enumerate(chapter_url_):
-            if 'javascript' in url_:
-                # 从上一章获取下一章的链接
-                last_url_ = chapter_url_[i - 1]
-                resp_ = requests.get(last_url_.replace('.html', '_1000000.html'), headers=headers).text
-                url_ = urljoin(last_url_, re.search('书签.*?<a href="(.*?)">下一章</a>', resp_).group(1))
-            if url_ not in chapter_url:
-                chapter_url.append(url_)
-            else:
-                raise ''
-        chapter_name = [i[1] for i in chapter_name_url]
+        chapter_name = []
+        now_chapter_url = chapter_url_[0]
+        while 1:
+            resp_ = requests.get(f'{now_chapter_url.replace(".html", "_100000.html")}', headers=headers).text
+            chapter_name_ = re.search('<h1>(.*?)(（|</h1>)', resp_).group(1)
+            chapter_name.append(chapter_name_)
+            chapter_url.append(now_chapter_url)
+            if '下一章' not in resp_:
+                break
+            now_chapter_url = urljoin(base_url, re.search('书签.*?<a href="(.*?)">下一章</a>', resp_).group(1))
+            time.sleep(0.5)
 
         chapter_dict['part'].append(part_name)
         chapter_dict['chapter_name'].append(chapter_name)
@@ -102,9 +102,9 @@ def get_chapter_text(chapter_url, debug=None):
             for text_ in re.findall('<p>(.*?)</p>', text):
                 texts += text_.replace('\n', '')
         # print(text)
-        img_url = re.findall('<img src="(.*?)".*?class="imagecontent">', text)
+        img_url = re.findall('<img[^>]+(src|data-src)="(.*?)" class="imagecontent', text)
         for img_url_ in img_url:
-            img_urls.append(img_url_)
+            img_urls.append(img_url_[1])
         page += 1
         time.sleep(0.7)
         if '下一页' not in resp:
@@ -150,9 +150,9 @@ def restore_chars(text):
 
 
 if __name__ == '__main__':
-    url = 'https://www.linovelib.com/novel/2727.html'
+    url = 'https://www.linovelib.com/novel/3048.html'
     noval_id = get_noval_id(url)
-    # get_noval_chapter(noval_id)
+    get_noval_chapter(noval_id)
     get_noval_info(noval_id)
     # get_noval_chapter(noval_id)
     a = get_chapter_text('https://www.linovelib.com/novel/2727/150104.html', debug=1)
