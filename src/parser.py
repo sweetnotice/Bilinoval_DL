@@ -62,12 +62,27 @@ def choose_down_chapter(chapter_info):
     return (start_, end_), choose_chapter_info
 
 
-def main(url):
-    noval_id = api.get_noval_id(url)
-    noval_info = api.get_noval_info(noval_id)  # 名称 封面 描述
+def set_start_end():
+    start_chapter_url = input('输入开始>>>')
+    end_chapter_url = input('输入结束(回车全下)>>>')
+    if end_chapter_url.replace(' ', '') == '':
+        end_chapter_url = False
+
+    noval_id = api.get_noval_id(start_chapter_url)
+    noval_info = api.get_noval_info(noval_id)
     print(noval_info['book_name'])
-    chapter_info = api.get_noval_chapter(noval_id)
-    (start, end), choose_chapter_info = choose_down_chapter(chapter_info)
+
+    down_chapter_info = api.while_get_chapter_name_url(start_url=start_chapter_url, end_url=end_chapter_url)
+    return (start_chapter_url, end_chapter_url), noval_info, down_chapter_info
+
+
+def main():
+    # noval_id = api.get_noval_id(url)
+    # noval_info = api.get_noval_info(noval_id)  # 名称 封面 描述
+    # print(noval_info['book_name'])
+    # chapter_info = api.get_noval_chapter(noval_id)
+    # (start, end), choose_chapter_info = choose_down_chapter(chapter_info)
+    (start, end), noval_info, choose_chapter_info = set_start_end()
 
     epub_text = parser(choose_chapter_info)
     title = noval_info['book_name']
@@ -79,6 +94,6 @@ def main(url):
 
 if __name__ == '__main__':
     # url = 'https://www.linovelib.com/novel/3805.html'
-    url = 'https://www.linovelib.com/novel/3162.html'
+    url = 'https://www.linovelib.com/novel/3080.html'
     # url = 'https://www.linovelib.com/novel/2914.html'
-    main(url)
+    main()

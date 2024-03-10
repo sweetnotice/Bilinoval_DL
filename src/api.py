@@ -1,21 +1,38 @@
 import re
 import time
+from tqdm import tqdm
 from urllib.parse import urljoin
 from src import setting
 from src import get_ban_word
 from spider_toolbox import requests_tools as requests
 
 base_url = setting.base_url
+cookies = {
+    'Hm_lvt_ef8d5b3eafdfe7d1bbf72e3f450ad2ed': str(int(time.time())),
+    'cf_clearance': 'eIT7XinjwS.PDgrbmimTzE8elvPo1WNGSKuIwOkwga8-1710071101-1.0.1.1-RO2ab4K0rgZEhq93iyCU.GunnUBc77kJ1SBftFY4RIWIyCO9AmPXaPyGNiiwJ5ISEMQR9fYuCodMg.27SuaMUg',
+    # 'jieqiRecentRead': '3080.184598.0.1.1710071483.0',
+    'Hm_lpvt_ef8d5b3eafdfe7d1bbf72e3f450ad2ed': str(int(time.time())),
+}
 headers = {
     'authority': 'www.linovelib.com',
+    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
     'accept-language': 'zh-CN,zh;q=0.9',
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 '
-                  'Safari/537.36',
+    'cache-control': 'no-cache',
+    'pragma': 'no-cache',
+    'sec-ch-ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Windows"',
+    'sec-fetch-dest': 'document',
+    'sec-fetch-mode': 'navigate',
+    'sec-fetch-site': 'same-origin',
+    'sec-fetch-user': '?1',
+    'upgrade-insecure-requests': '1',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
 }
 
 
 def get_noval_id(url: str):
-    book_id = url.split('/')[-1].replace('.html', '')
+    book_id = re.search('/novel/(\d+)(.html|/\d+.html)', url).group(1)
     return book_id
 
 
@@ -79,6 +96,43 @@ def get_noval_chapter(noval_id) -> dict:
     # print(item)
 
 
+def while_get_chapter_name_url(start_url: str, end_url: str = False):
+    now_url = start_url
+    chapter_dict = {'part': [],
+                    'chapter_name': [],
+                    'chapter_url': []}
+    chapter_name = []
+    chapter_url = []
+
+    part_name = ''
+    while 1:
+        resp = requests.get(now_url.replace(".html", "_100000.html"), headers=headers).text
+        chapter_name_ = re.search('<h1>(.*?)(（|</h1>)', resp).group(1)
+        part_name_ = re.search('<a href="/novel.*?</a> > (.*?)</div>', resp).group(1)
+
+        if part_name != part_name_:
+            if part_name != '':  # 为非初始卷的新卷
+                chapter_dict['chapter_name'].append(chapter_name)
+                chapter_dict['chapter_url'].append(chapter_url)
+                chapter_name, chapter_url = [], []
+            chapter_dict['part'].append(part_name_)
+            part_name = part_name_
+        chapter_name.append(f'{part_name}-{chapter_name_}')
+        chapter_url.append(now_url)
+        if '下一章' not in resp:  # 结束
+            chapter_dict['chapter_name'].append(chapter_name)
+            chapter_dict['chapter_url'].append(chapter_url)
+            break
+        if now_url != end_url:
+            now_url = urljoin(base_url, re.search('书签.*?<a href="(.*?)">下一章</a>', resp).group(1))
+            time.sleep(0.5)
+        else:  # 到达指定结束章节(包含)
+            chapter_dict['chapter_name'].append(chapter_name)
+            chapter_dict['chapter_url'].append(chapter_url)
+            break
+    return chapter_dict
+
+
 def get_chapter_text(chapter_url, debug=None):
     """
     :param chapter_url:
@@ -89,12 +143,15 @@ def get_chapter_text(chapter_url, debug=None):
     page = 1
     while 1:
         url = chapter_url.replace('.html', f'_{page}.html')
-        resp = requests.get(url, headers=headers)
+        resp = requests.get(url, headers=headers, cookies=cookies)
         resp.encoding = 'utf-8'
         resp = resp.text
         text = re.search(
             '<div id="mlfy_main_text">.*?<div id="TextContent" class="read-content">(.*?)(<div class="dag">|</div>)',
             resp, re.S).group(1)
+        if '内容加载失败' in text:
+            print('内容加载失败')
+            raise '内容加载失败'
         if not debug:
             text = restore_chars(text)
             texts += text
@@ -150,10 +207,13 @@ def restore_chars(text):
 
 
 if __name__ == '__main__':
-    url = 'https://www.linovelib.com/novel/3048.html'
-    noval_id = get_noval_id(url)
-    get_noval_chapter(noval_id)
-    get_noval_info(noval_id)
+    # url = 'https://www.linovelib.com/novel/3048.html'
+    # noval_id = get_noval_id(url)
+    # get_noval_chapter(noval_id)
+    # get_noval_info(noval_id)
     # get_noval_chapter(noval_id)
     a = get_chapter_text('https://www.linovelib.com/novel/2727/150104.html', debug=1)
     # print(get_img_content('https://img3.readpai.com/3/3805/201460/224610.jpg'))
+    # get_noval_part_chapter_name('3080')
+    # while_get_chapter_name_url('https://www.linovelib.com/novel/3080/197281.html',
+    #                            'https://www.linovelib.com/novel/3080/226845.html')
