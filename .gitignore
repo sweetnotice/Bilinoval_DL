@@ -1,0 +1,6 @@
+
+test.py
+choose_chapter_info.json
+*.epub
+*.pyc
+/src/__pycache__

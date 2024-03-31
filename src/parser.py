@@ -1,16 +1,16 @@
 import re
 from src import api, write_epub
 import time
-from spider_toolbox import file_tools
-from concurrent.futures import ThreadPoolExecutor
+import json
 from tqdm import tqdm
+import config
 
-temp_img_dir = 'temp_img'
+temp_img_dir = config.temp_img_dir
+epub_save_dir = config.save_dir
 
 
 def down_img(url, name):
     img = api.get_img_content(url)
-    file_tools.mkdir(temp_img_dir)
     with open(f'{temp_img_dir}/{name}.jpg', 'wb') as f:
         f.write(img)
     # print(f'temp/{name}.jpg')
@@ -24,6 +24,7 @@ def parser(chapter_info):
         chapter_name_text = []
         pbar = tqdm(total=len(chapter_info['chapter_name'][i]), desc=part)
         for chapter_name, chapter_url in zip(chapter_info['chapter_name'][i], chapter_info['chapter_url'][i]):
+            pbar.update()
             text, img_urls = api.get_chapter_text(chapter_url)  # 一话所有的文本和图片链接
             for img_url in img_urls:
                 text = text.replace(img_url, f'{temp_img_dir}/{img_id}.jpg')
@@ -32,8 +33,8 @@ def parser(chapter_info):
                     text = re.sub(r'<img src="[^"]*" data-src="([^"]*)"[^>]*>',
                                   r'<img src="\1" data-src="\1" class="imagecontent lazyload"/>', text)
                 img_id += 1
+                # time.sleep(0.2)
             chapter_name_text.append([chapter_name, text])
-            pbar.update()
         chapter_part_chapter_text[part] = chapter_name_text
     # print(chapter_part_chapter_text)
     return chapter_part_chapter_text
@@ -84,12 +85,15 @@ def main():
     # (start, end), choose_chapter_info = choose_down_chapter(chapter_info)
     (start, end), noval_info, choose_chapter_info = set_start_end()
 
+    with open('choose_chapter_info.json', 'w', encoding='utf-8') as f:
+        f.write(json.dumps(choose_chapter_info, ensure_ascii=False))
+
     epub_text = parser(choose_chapter_info)
     title = noval_info['book_name']
     author = noval_info['author']
     cover_content = api.get_img_content(noval_info['cover_url'])
     description = noval_info['description']
-    write_epub.write_epub(title, author, epub_text, description, 'cover', cover_content, temp_img_dir)
+    write_epub.write_epub(title, author, epub_text, description, 'cover', cover_content, temp_img_dir, epub_save_dir)
 
 
 if __name__ == '__main__':

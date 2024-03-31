@@ -2,11 +2,11 @@ import re
 import time
 from tqdm import tqdm
 from urllib.parse import urljoin
-from src import setting
+import config
 from src import get_ban_word
 from spider_toolbox import requests_tools as requests
 
-base_url = setting.base_url
+base_url = config.base_url
 cookies = {
     'Hm_lvt_ef8d5b3eafdfe7d1bbf72e3f450ad2ed': str(int(time.time())),
     'cf_clearance': 'eIT7XinjwS.PDgrbmimTzE8elvPo1WNGSKuIwOkwga8-1710071101-1.0.1.1-RO2ab4K0rgZEhq93iyCU.GunnUBc77kJ1SBftFY4RIWIyCO9AmPXaPyGNiiwJ5ISEMQR9fYuCodMg.27SuaMUg',
@@ -117,7 +117,9 @@ def while_get_chapter_name_url(start_url: str, end_url: str = False):
                 chapter_name, chapter_url = [], []
             chapter_dict['part'].append(part_name_)
             part_name = part_name_
+            print(f'\n{part_name}')
         chapter_name.append(f'{part_name}-{chapter_name_}')
+        print(f'{chapter_name_}')
         chapter_url.append(now_url)
         if '下一章' not in resp:  # 结束
             chapter_dict['chapter_name'].append(chapter_name)
@@ -125,7 +127,7 @@ def while_get_chapter_name_url(start_url: str, end_url: str = False):
             break
         if now_url != end_url:
             now_url = urljoin(base_url, re.search('书签.*?<a href="(.*?)">下一章</a>', resp).group(1))
-            time.sleep(0.5)
+            # time.sleep(0.5)
         else:  # 到达指定结束章节(包含)
             chapter_dict['chapter_name'].append(chapter_name)
             chapter_dict['chapter_url'].append(chapter_url)
@@ -133,10 +135,12 @@ def while_get_chapter_name_url(start_url: str, end_url: str = False):
     return chapter_dict
 
 
-def get_chapter_text(chapter_url, debug=None):
+def get_chapter_text(chapter_url, text_without_format=None):
     """
     :param chapter_url:
     :return: 整话  整话图片url
+    :param text_without_format: 输出无格式文本
+
     """
     texts = ''
     img_urls = []
@@ -152,14 +156,14 @@ def get_chapter_text(chapter_url, debug=None):
         if '内容加载失败' in text:
             print('内容加载失败')
             raise '内容加载失败'
-        if not debug:
+        if not text_without_format:
             text = restore_chars(text)
             texts += text
         else:
             for text_ in re.findall('<p>(.*?)</p>', text):
                 texts += text_.replace('\n', '')
         # print(text)
-        img_url = re.findall('<img[^>]+(src|data-src)="(.*?)" class="imagecontent', text)
+        img_url = re.findall('<img[^>]+(src|data-src)="(.*?\.(jpg|png))" (class="imagecontent|style)', text)
         for img_url_ in img_url:
             img_urls.append(img_url_[1])
         page += 1
@@ -173,7 +177,7 @@ def get_chapter_text(chapter_url, debug=None):
 
 
 def get_img_content(url) -> bytes:
-    headers = {
+    headers_ = {
         'authority': 'img3.readpai.com',
         'accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
         'accept-language': 'zh-CN,zh;q=0.9',
@@ -188,18 +192,18 @@ def get_img_content(url) -> bytes:
         'sec-fetch-site': 'cross-site',
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
     }
-    resp = requests.get(url, headers=headers).content
+    resp = requests.get(url, headers=headers_, info=True).content
     return resp
 
 
 def restore_chars(text):
-    secretMap = get_ban_word.ban_word
+    ban_word = get_ban_word.ban_word
     restored_text = ""
     i = 0
     while i < len(text):
         char = text[i]
-        if char in secretMap:
-            restored_text += secretMap[char]
+        if char in ban_word:
+            restored_text += ban_word[char]
         else:
             restored_text += char
         i += 1
@@ -212,8 +216,9 @@ if __name__ == '__main__':
     # get_noval_chapter(noval_id)
     # get_noval_info(noval_id)
     # get_noval_chapter(noval_id)
-    a = get_chapter_text('https://www.linovelib.com/novel/2727/150104.html', debug=1)
+    a = get_chapter_text('https://www.linovelib.com/novel/111/116403.html', text_without_format=1)
     # print(get_img_content('https://img3.readpai.com/3/3805/201460/224610.jpg'))
     # get_noval_part_chapter_name('3080')
     # while_get_chapter_name_url('https://www.linovelib.com/novel/3080/197281.html',
     #                            'https://www.linovelib.com/novel/3080/226845.html')
+    get_img_content('https://img3.readpai.com/0/111/116397/189148.jpg')

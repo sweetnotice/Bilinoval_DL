@@ -5,7 +5,7 @@ from ebooklib import epub
 from spider_toolbox import file_tools
 
 
-def write_epub(title, 作者, 内容, description, 封面文件名, 封面文件, pic_dir, folder='epub'):
+def write_epub(title, 作者, 内容, description, 封面文件名, 封面文件, pic_dir, folder):
     # 初始化epub工具
     book = epub.EpubBook()
     book.set_identifier(str(uuid.uuid4()))
@@ -19,8 +19,6 @@ def write_epub(title, 作者, 内容, description, 封面文件名, 封面文件
     book.spine = ['nav']
     IDS = -1
     文件序号 = -1
-    if folder:
-        file_tools.mkdir(folder)
     for 卷名 in 内容:
         print("卷: " + 卷名)
         book.toc.append([epub.Section(卷名), []])
