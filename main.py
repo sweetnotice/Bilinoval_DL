@@ -15,9 +15,10 @@ def init():
 
 
 def main():
-    init()
-    # user_input = input('输入链接>>>')
-    parser.main()
+    while 1:
+        init()
+        # user_input = input('输入链接>>>')
+        parser.main()
 
 
 if __name__ == '__main__':

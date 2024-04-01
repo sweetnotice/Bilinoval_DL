@@ -4,3 +4,4 @@ choose_chapter_info.json
 *.epub
 *.pyc
 /src/__pycache__
+/temp_img

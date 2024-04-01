@@ -4,9 +4,11 @@ import time
 import json
 from tqdm import tqdm
 import config
+from spider_toolbox import file_tools
 
 temp_img_dir = config.temp_img_dir
 epub_save_dir = config.save_dir
+total_word = 0
 
 
 def down_img(url, name):
@@ -16,16 +18,27 @@ def down_img(url, name):
     # print(f'temp/{name}.jpg')
 
 
+def format_number_with_units(number: int):
+    if number < 1000:
+        return str(number)
+    elif number < 10000:
+        return f"{number / 1000:.1f}千"
+    else:
+        return f"{number / 10000:.1f}万"
+
+
 def parser(chapter_info):
+    global total_word
     chapter_part_chapter_text = {}
     img_id = 0
-    # with ThreadPoolExecutor(2) as f:
     for i, part in enumerate(chapter_info['part']):
         chapter_name_text = []
         pbar = tqdm(total=len(chapter_info['chapter_name'][i]), desc=part)
         for chapter_name, chapter_url in zip(chapter_info['chapter_name'][i], chapter_info['chapter_url'][i]):
             pbar.update()
-            text, img_urls = api.get_chapter_text(chapter_url)  # 一话所有的文本和图片链接
+            if chapter_name.split('-')[-1] == '插图':
+                continue
+            text, img_urls = api.mobile_get_chapter_text(chapter_url)  # 一话所有的文本和图片链接
             for img_url in img_urls:
                 text = text.replace(img_url, f'{temp_img_dir}/{img_id}.jpg')
                 down_img(img_url, img_id)
@@ -35,6 +48,7 @@ def parser(chapter_info):
                 img_id += 1
                 # time.sleep(0.2)
             chapter_name_text.append([chapter_name, text])
+            total_word += len(text)
         chapter_part_chapter_text[part] = chapter_name_text
     # print(chapter_part_chapter_text)
     return chapter_part_chapter_text
@@ -89,11 +103,15 @@ def main():
         f.write(json.dumps(choose_chapter_info, ensure_ascii=False))
 
     epub_text = parser(choose_chapter_info)
+
     title = noval_info['book_name']
     author = noval_info['author']
     cover_content = api.get_img_content(noval_info['cover_url'])
     description = noval_info['description']
     write_epub.write_epub(title, author, epub_text, description, 'cover', cover_content, temp_img_dir, epub_save_dir)
+    file_tools.del_dir(temp_img_dir, mode=2)
+
+    print(f'\n字数:{format_number_with_units(total_word)}\n')
 
 
 if __name__ == '__main__':

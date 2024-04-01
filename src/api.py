@@ -176,6 +176,69 @@ def get_chapter_text(chapter_url, text_without_format=None):
     return texts, img_urls
 
 
+def mobile_get_chapter_text(chapter_url, text_without_format=None):
+    """
+    :param chapter_url:
+    :return: 整话  整话图片url
+    :param text_without_format: 输出无格式文本
+    """
+    chapter_url = chapter_url.replace('linovelib', 'bilinovel')
+    texts = ''
+    img_urls = []
+    page = 1
+    while 1:
+        url = chapter_url.replace('.html', f'_{page}.html')
+        headers = {
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'accept-language': 'zh-CN,zh;q=0.9',
+            'cache-control': 'no-cache',
+            'pragma': 'no-cache',
+            'sec-ch-ua': '"Google Chrome";v="111", "Chromium";v="111", "Not=A?Brand";v="24"',
+            'sec-ch-ua-mobile': '?1',
+            'sec-ch-ua-platform': '"Android"',
+            'sec-fetch-dest': 'document',
+            'sec-fetch-mode': 'navigate',
+            'sec-fetch-site': 'same-origin',
+            'sec-fetch-user': '?1',
+            'upgrade-insecure-requests': '1',
+            'user-agent': 'Mozilla/5.0 (Linux; Android 11; CPH2099) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Mobile Safari/537.36',
+        }
+        cookies = {
+            '_ga': 'GA1.1.1876529920.1708955900',
+            'night': '0',
+            'Hm_lvt_6f9595b2c4b57f95a93aa5f575a77fb0': '1710064040,1711965841',
+            'cf_clearance': 'IuQPY8WRGA3lRMnvdRaIoRcs2rMhc4Sju8x7V2lDU4c-1711966257-1.0.1.1-aLd63HOH8FvCn.Wd2hKocqG7aSmPpa7_mUB7cOhcmpnQxEljksn6HVoK5adIAx8aSjEgvMX5YbZZfDHmyws8PQ',
+            'jieqiRecentRead': '4023.225413.0.1.1708956001.0-1523.55783.0.1.1708956091.0-2734.224916.0.1.1708958164.0-3805.201461.0.2.1708958222.0-3095.154933.0.7.1711965953.0',
+            '_ga_NG72YQN6TX': 'GS1.1.1711965840.5.1.1711966262.0.0.0',
+            'Hm_lpvt_6f9595b2c4b57f95a93aa5f575a77fb0': '1711966263',
+        }
+        resp = requests.get(url, headers=headers, cookies=cookies)
+        resp.encoding = 'utf-8'
+        resp = resp.text
+        text = re.search(
+            '<div id="acontentz" class="bcontent">(.*?)</div>',
+            resp, re.S).group(1)
+        text = re.sub('<figure>.*</figure>', '', text)
+        if '内容加载失败' in text:
+            print('内容加载失败')
+            raise '内容加载失败'
+        if not text_without_format:
+            text = restore_chars(text)
+            texts += text
+        else:
+            for text_ in re.findall('<p>(.*?)</p>', text):
+                texts += text_.replace('\n', '')
+        # print(text)
+        img_url = re.findall('<img[^>]+(src|data-src)="(.*?\.(jpg|png))"', text)
+        for img_url_ in img_url:
+            img_urls.append(img_url_[1])
+        page += 1
+        time.sleep(0.7)
+        if '下一頁' not in resp:
+            break
+    return texts, img_urls
+
+
 def get_img_content(url) -> bytes:
     headers_ = {
         'authority': 'img3.readpai.com',
@@ -216,9 +279,11 @@ if __name__ == '__main__':
     # get_noval_chapter(noval_id)
     # get_noval_info(noval_id)
     # get_noval_chapter(noval_id)
-    a = get_chapter_text('https://www.linovelib.com/novel/111/116403.html', text_without_format=1)
+    # a = get_chapter_text('https://www.linovelib.com/novel/3095/154933.html')
     # print(get_img_content('https://img3.readpai.com/3/3805/201460/224610.jpg'))
     # get_noval_part_chapter_name('3080')
     # while_get_chapter_name_url('https://www.linovelib.com/novel/3080/197281.html',
     #                            'https://www.linovelib.com/novel/3080/226845.html')
-    get_img_content('https://img3.readpai.com/0/111/116397/189148.jpg')
+    # get_img_content('https://img3.readpai.com/0/111/116397/189148.jpg')
+    # mobile_get_chapter_text('https://www.bilinovel.com/novel/3095/154931.html')
+    mobile_get_chapter_text('https://www.bilinovel.com/novel/3095/155630.html')
