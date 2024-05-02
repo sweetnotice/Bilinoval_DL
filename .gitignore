@@ -5,3 +5,4 @@ choose_chapter_info.json
 *.pyc
 /src/__pycache__
 /temp_img
+/.idea

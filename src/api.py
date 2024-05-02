@@ -3,6 +3,7 @@ import time
 from tqdm import tqdm
 from urllib.parse import urljoin
 import config
+from DrissionPage import ChromiumPage
 from src import get_ban_word
 from spider_toolbox import requests_tools as requests
 
@@ -107,6 +108,10 @@ def while_get_chapter_name_url(start_url: str, end_url: str = False):
     part_name = ''
     while 1:
         resp = requests.get(now_url.replace(".html", "_100000.html"), headers=headers).text
+        if 'You are being rate limited' in resp:
+            time.sleep(5)
+            print('触发限制')
+            continue
         chapter_name_ = re.search('<h1>(.*?)(（|</h1>)', resp).group(1)
         part_name_ = re.search('<a href="/novel.*?</a> > (.*?)</div>', resp).group(1)
 
@@ -127,7 +132,7 @@ def while_get_chapter_name_url(start_url: str, end_url: str = False):
             break
         if now_url != end_url:
             now_url = urljoin(base_url, re.search('书签.*?<a href="(.*?)">下一章</a>', resp).group(1))
-            # time.sleep(0.5)
+            time.sleep(0.2)
         else:  # 到达指定结束章节(包含)
             chapter_dict['chapter_name'].append(chapter_name)
             chapter_dict['chapter_url'].append(chapter_url)
@@ -163,7 +168,7 @@ def get_chapter_text(chapter_url, text_without_format=None):
             for text_ in re.findall('<p>(.*?)</p>', text):
                 texts += text_.replace('\n', '')
         # print(text)
-        img_url = re.findall('<img[^>]+(src|data-src)="(.*?\.(jpg|png))" (class="imagecontent|style)', text)
+        img_url = re.findall('<img[^>]+(src|data-src)="(.*?\.(jpg|png))"', text)
         for img_url_ in img_url:
             img_urls.append(img_url_[1])
         page += 1
@@ -239,6 +244,28 @@ def mobile_get_chapter_text(chapter_url, text_without_format=None):
     return texts, img_urls
 
 
+def dp_get_chapter_text(chapter_url):
+    page = ChromiumPage()
+    page.set.load_mode.eager()  # 设置为eager模式 加载完 DOM 或超时即停止加载，不加载页面资源
+    page.get(chapter_url, timeout=5, retry=2)
+    img_urls = []
+    texts = ''
+    while 1:
+        text = page.ele('x://*[@id="TextContent"]').html
+        text = re.sub('<div class="google-auto-placed.*?</ins></div>', '', text)
+        text = re.sub('<ins class="adsbygoogle".*?</ins>', '', text)
+        texts += text
+        imgs = page.eles('x://img', timeout=1)
+        for img in imgs:
+            img_url = img.attr('src')
+            img_urls.append(img_url)
+        if '下一页' in page.html:
+            page.ele('x://*[text()="下一页"]').check()
+            page.wait.load_start(timeout=2)
+        else:
+            return texts, img_urls
+
+
 def get_img_content(url) -> bytes:
     headers_ = {
         'authority': 'img3.readpai.com',
@@ -286,4 +313,5 @@ if __name__ == '__main__':
     #                            'https://www.linovelib.com/novel/3080/226845.html')
     # get_img_content('https://img3.readpai.com/0/111/116397/189148.jpg')
     # mobile_get_chapter_text('https://www.bilinovel.com/novel/3095/154931.html')
-    mobile_get_chapter_text('https://www.bilinovel.com/novel/3095/155630.html')
+    # mobile_get_chapter_text('https://www.bilinovel.com/novel/3095/155630.html')
+    print(dp_get_chapter_text('https://www.linovelib.com/novel/8/1884.html'))

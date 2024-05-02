@@ -48,9 +48,10 @@ def write_epub(title, 作者, 内容, description, 封面文件名, 封面文件
         for i, img in enumerate(sorted_files):
             img = os.path.join(pic_dir, img)
             if '.jpg' in img:
-                img_item = epub.EpubImage(file_name=f'{pic_dir}/{i}.jpg',
-                                          media_type="image/jpeg",
-                                          content=open(img, 'rb').read())
+                img_item = epub.EpubImage()
+                img_item.file_name = f'{pic_dir}/{i}.jpg'
+                img_item.media_type = "image/jpeg"
+                img_item.content = open(img, 'rb').read()
                 book.add_item(img_item)
 
     epub.write_epub(os.path.join(folder, title) + '.epub', book)

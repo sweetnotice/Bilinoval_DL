@@ -1,9 +1,11 @@
 import re
+import os
 from src import api, write_epub
 import time
 import json
 from tqdm import tqdm
 import config
+from DownloadKit import DownloadKit
 from spider_toolbox import file_tools
 
 temp_img_dir = config.temp_img_dir
@@ -11,10 +13,31 @@ epub_save_dir = config.save_dir
 total_word = 0
 
 
-def down_img(url, name):
-    img = api.get_img_content(url)
-    with open(f'{temp_img_dir}/{name}.jpg', 'wb') as f:
-        f.write(img)
+def down_img(img_url, name):
+    # img = api.get_img_content(url)
+    down_kit = DownloadKit()
+    headers_ = {
+        'authority': 'img3.readpai.com',
+        'accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        'accept-language': 'zh-CN,zh;q=0.9',
+        'cache-control': 'no-cache',
+        'pragma': 'no-cache',
+        'referer': 'https://www.linovelib.com/',
+        'sec-ch-ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'image',
+        'sec-fetch-mode': 'no-cors',
+        'sec-fetch-site': 'cross-site',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    }
+    down_kit.add(file_url=img_url,
+                 goal_path=temp_img_dir,
+                 rename=f'{name}',
+                 suffix='jpg',
+                 headers=headers_)
+    # with open(f'{temp_img_dir}/{name}.jpg', 'wb') as f:
+    #     f.write(img)
     # print(f'temp/{name}.jpg')
 
 
@@ -38,7 +61,7 @@ def parser(chapter_info):
             pbar.update()
             if chapter_name.split('-')[-1] == '插图':
                 continue
-            text, img_urls = api.mobile_get_chapter_text(chapter_url)  # 一话所有的文本和图片链接
+            text, img_urls = api.dp_get_chapter_text(chapter_url)  # 一话所有的文本和图片链接
             for img_url in img_urls:
                 text = text.replace(img_url, f'{temp_img_dir}/{img_id}.jpg')
                 down_img(img_url, img_id)
