@@ -69,7 +69,7 @@ def parser(chapter_info):
                     text = re.sub(r'<img src="[^"]*" data-src="([^"]*)"[^>]*>',
                                   r'<img src="\1" data-src="\1" class="imagecontent lazyload"/>', text)
                 img_id += 1
-                # time.sleep(0.2)
+                time.sleep(0.5)
             chapter_name_text.append([chapter_name, text])
             total_word += len(text)
         chapter_part_chapter_text[part] = chapter_name_text
@@ -111,6 +111,7 @@ def set_start_end():
     print(noval_info['book_name'])
 
     down_chapter_info = api.while_get_chapter_name_url(start_url=start_chapter_url, end_url=end_chapter_url)
+
     return (start_chapter_url, end_chapter_url), noval_info, down_chapter_info
 
 
