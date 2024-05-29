@@ -4,6 +4,7 @@ from tqdm import tqdm
 from urllib.parse import urljoin
 import config
 from DrissionPage import ChromiumPage
+from DrissionPage._configs.chromium_options import ChromiumOptions
 from src import get_ban_word, fort_decrypto, ocr_api
 from spider_toolbox import requests_tools as requests
 
@@ -246,7 +247,7 @@ def mobile_get_chapter_text(chapter_url, text_without_format=None):
 
 def dp_get_chapter_text(chapter_url):
     page = ChromiumPage()
-    page.set.load_mode.eager()  # 设置为eager模式 加载完 DOM 或超时即停止加载，不加载页面资源
+
     page.get(chapter_url, timeout=5, retry=2)
 
     img_urls = []
@@ -267,12 +268,20 @@ def dp_get_chapter_text(chapter_url):
             if '.svg' in img_url:
                 img_url = img.attr('data-src')
             img_urls.append(img_url)
-        if '下一页' in page.html:
+        if '下一页</a>' in page.html:
             time.sleep(0.3)
             page.ele('x://*[text()="下一页"]').check()
             page.wait.load_start(timeout=2)
         else:
             return texts, img_urls
+
+
+def init_chrome():
+    co = ChromiumOptions()
+    co.no_imgs(True).mute(True)  # 静音，不加载图片
+    page = ChromiumPage()
+    page.set.load_mode.eager()  # 设置为eager模式 加载完 DOM 或超时即停止加载，不加载页面资源
+    page.get('https://www.linovelib.com/')
 
 
 def get_img_content(url) -> bytes:
@@ -324,36 +333,4 @@ if __name__ == '__main__':
     # mobile_get_chapter_text('https://www.bilinovel.com/novel/3095/154931.html')
     # mobile_get_chapter_text('https://www.bilinovel.com/novel/3095/155630.html')
     # texts, img_urls = dp_get_chapter_text('https://www.linovelib.com/novel/2906/143462_4.html')
-    from DownloadKit import DownloadKit
-
-
-    def down_img(img_url, name):
-        # img = api.get_img_content(url)
-        down_kit = DownloadKit()
-        headers_ = {
-            'authority': 'img3.readpai.com',
-            'accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-            'accept-language': 'zh-CN,zh;q=0.9',
-            'cache-control': 'no-cache',
-            'pragma': 'no-cache',
-            'referer': 'https://www.linovelib.com/',
-            'sec-ch-ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'sec-fetch-dest': 'image',
-            'sec-fetch-mode': 'no-cors',
-            'sec-fetch-site': 'cross-site',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-        }
-        down_kit.add(file_url=img_url,
-                     goal_path='111',
-                     rename=f'{name}',
-                     suffix='jpg',
-                     headers=headers_)
-
-
-    text, img_urls = dp_get_chapter_text('https://www.linovelib.com/novel/3080/153352.html')  # 一话所有的文本和图片链接
-    for img_id, img_url in enumerate(img_urls):
-        print(img_id, img_url)
-        # text = text.replace(img_url, f'{temp_img_dir}/{img_id}.jpg')
-        down_img(img_url, img_id)
+    init_chrome()

@@ -1,12 +1,28 @@
 import requests
 import base64
-from PIL import Image
+from PIL import Image, ImageEnhance, ImageFilter
 from io import BytesIO
 import time
+import pytesseract
+from PIL import ImageOps
 
 API_KEY = "6ed3g7r63HvSkESXY3OtyDkR"
 SECRET_KEY = "YcmCSq0DZW2MwqwDqNfNUBFIAvIc2eUc"
-import pytesseract
+
+
+def save_base64_2_pic(base64_str):
+    # 去掉base64字符串的头部信息（如果有的话），例如：'data:image/jpeg;base64,'
+    # 注意：这取决于你的base64字符串的来源，有些可能不需要这一步
+    if ',' in base64_str:
+        base64_str = base64_str.split(',')[1]
+    base64_bytes = base64.b64decode(base64_str)
+
+    # 使用BytesIO将字节数据转换为文件对象
+    image_file = BytesIO(base64_bytes)
+
+    # 使用PIL打开文件对象并保存为图片
+    image = Image.open(image_file)
+    image.save(f'{int(time.time())}.jpg')  # 保存为jpg格式，你可以根据需要更改扩展名
 
 
 def pytesseract_ocr(base64_str):
@@ -20,26 +36,18 @@ def pytesseract_ocr(base64_str):
     with open('temp.jpg', 'wb') as image_file:
         image_file.write(base64_data)
         # Perform OCR on the image
-    text = pytesseract.image_to_string('temp.jpg', lang='chi_sim+eng')
+    img = Image.open('temp.jpg')
+    img = ImageEnhance.Contrast(img).enhance(2)  # 增强对比度
+    img = img.filter(ImageFilter.MedianFilter())  # 中值滤波去噪
+    img = ImageOps.invert(img.convert('L'))  # 转换为灰度并反转颜色（二值化的一种方式）
+    # img.save('111.jpg')
+    text = pytesseract.image_to_string(img, lang='chi_sim')
 
     # strip white space characters
-    ocr_word = text.replace(" ", "")
+    ocr_word = text.replace(" ", "").replace('\n', '')
     # Print the extracted text
     print(ocr_word)
     return ocr_word
-
-
-def save_base64_2_pic(base64_str):
-    # 去掉base64字符串的头部信息（如果有的话），例如：'data:image/jpeg;base64,'
-    # 注意：这取决于你的base64字符串的来源，有些可能不需要这一步
-    base64_bytes = base64.b64decode(base64_str.split(',')[1])
-
-    # 使用BytesIO将字节数据转换为文件对象
-    image_file = BytesIO(base64_bytes)
-
-    # 使用PIL打开文件对象并保存为图片
-    image = Image.open(image_file)
-    image.save(f'{int(time.time())}.jpg')  # 保存为jpg格式，你可以根据需要更改扩展名
 
 
 def high_precision_ocr(pic_base_64):

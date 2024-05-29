@@ -13,6 +13,15 @@ epub_save_dir = config.save_dir
 total_word = 0
 
 
+def parser_local_chapter_info():
+    base_path = 'choose_chapter_info.json'
+    local_path = r'D:\pythoncode\代码\爬\Bilinoval_DL\choose_chapter_info.json'
+    with open(local_path, 'r', encoding='utf-8') as f:
+        file_read = f.read()
+        chapter_info = json.loads(file_read)
+    return chapter_info
+
+
 def down_img(img_url, name):
     # img = api.get_img_content(url)
     down_kit = DownloadKit()
@@ -100,7 +109,7 @@ def choose_down_chapter(chapter_info):
     return (start_, end_), choose_chapter_info
 
 
-def set_start_end():
+def set_start_end(debug: bool = False):
     start_chapter_url = input('输入开始>>>')
     end_chapter_url = input('输入结束(回车全下)>>>')
     if end_chapter_url.replace(' ', '') == '':
@@ -109,9 +118,10 @@ def set_start_end():
     noval_id = api.get_noval_id(start_chapter_url)
     noval_info = api.get_noval_info(noval_id)
     print(noval_info['book_name'])
-
-    down_chapter_info = api.while_get_chapter_name_url(start_url=start_chapter_url, end_url=end_chapter_url)
-
+    if debug:
+        down_chapter_info = parser_local_chapter_info()
+    else:
+        down_chapter_info = api.while_get_chapter_name_url(start_url=start_chapter_url, end_url=end_chapter_url)
     return (start_chapter_url, end_chapter_url), noval_info, down_chapter_info
 
 
@@ -121,18 +131,26 @@ def main():
     # print(noval_info['book_name'])
     # chapter_info = api.get_noval_chapter(noval_id)
     # (start, end), choose_chapter_info = choose_down_chapter(chapter_info)
-    (start, end), noval_info, choose_chapter_info = set_start_end()
+    (start, end), noval_info, choose_chapter_info = set_start_end(debug=False)
 
     with open('choose_chapter_info.json', 'w', encoding='utf-8') as f:
         f.write(json.dumps(choose_chapter_info, ensure_ascii=False))
 
+    api.init_chrome()
     epub_text = parser(choose_chapter_info)
 
     title = noval_info['book_name']
     author = noval_info['author']
     cover_content = api.get_img_content(noval_info['cover_url'])
     description = noval_info['description']
-    write_epub.write_epub(title, author, epub_text, description, 'cover', cover_content, temp_img_dir, epub_save_dir)
+    write_epub.write_epub(title,
+                          author,
+                          epub_text,
+                          description,
+                          'cover',
+                          cover_content,
+                          temp_img_dir,
+                          epub_save_dir)
     file_tools.del_dir(temp_img_dir, mode=2)
 
     print(f'\n字数:{format_number_with_units(total_word)}\n')
