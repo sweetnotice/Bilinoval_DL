@@ -248,10 +248,11 @@ def mobile_get_chapter_text(chapter_url, text_without_format=None):
 def dp_get_chapter_text(chapter_url):
     page = ChromiumPage()
 
-    page.get(chapter_url, timeout=5, retry=2)
+    page.get(chapter_url, timeout=5, retry=6)
 
     img_urls = []
     texts = ''
+    page.stop_loading()
     while 1:
         text = page.ele('x://*[@id="TextContent"]').html
         text = re.sub('<div class="google-auto-placed.*?</ins></div>', '', text)
@@ -260,16 +261,16 @@ def dp_get_chapter_text(chapter_url):
         if page.run_js(fort_decrypto.js_check):
             last_p = page.ele('css:#TextContent p:last-of-type')
             base64_pic = last_p.get_screenshot(as_base64='png')  # 返回截图二进制文本
-            ocr_word = ocr_api.high_precision_ocr(base64_pic)
+            ocr_word = ocr_api.pytesseract_ocr(base64_pic)
             texts = texts.replace(last_p.text, ocr_word)
-        imgs = page.eles('x://img', timeout=1)
+        imgs = page.eles('x://img', timeout=2)
         for img in imgs:
             img_url = img.attr('src')
             if '.svg' in img_url:
                 img_url = img.attr('data-src')
             img_urls.append(img_url)
         if '下一页</a>' in page.html:
-            time.sleep(0.3)
+            time.sleep(1.5)
             page.ele('x://*[text()="下一页"]').check()
             page.wait.load_start(timeout=2)
         else:

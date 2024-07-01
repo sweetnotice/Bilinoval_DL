@@ -33,7 +33,8 @@
   字库加密已经解决了,采取这位大佬的 [ocr不讲武德解密法](https://github.com/lightnovel-center/linovelib2epub/blob/main/docs-internal/linovelib-pc-font-obfuscation.md)
 
 ### 更新日志
-
+#### #9
+- 修改ocr为`pytesseract`库
 #### 0529#8
 
 - 提前初始化浏览器

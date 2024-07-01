@@ -81,6 +81,7 @@ def parser(chapter_info):
                 time.sleep(0.5)
             chapter_name_text.append([chapter_name, text])
             total_word += len(text)
+        time.sleep(3)
         chapter_part_chapter_text[part] = chapter_name_text
     # print(chapter_part_chapter_text)
     return chapter_part_chapter_text
@@ -126,11 +127,6 @@ def set_start_end(debug: bool = False):
 
 
 def main():
-    # noval_id = api.get_noval_id(url)
-    # noval_info = api.get_noval_info(noval_id)  # 名称 封面 描述
-    # print(noval_info['book_name'])
-    # chapter_info = api.get_noval_chapter(noval_id)
-    # (start, end), choose_chapter_info = choose_down_chapter(chapter_info)
     (start, end), noval_info, choose_chapter_info = set_start_end(debug=False)
 
     with open('choose_chapter_info.json', 'w', encoding='utf-8') as f:
